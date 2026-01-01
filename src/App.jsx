@@ -216,7 +216,7 @@ try {
 };
 
 const handleFaucet = () => {
-window.open(‘https://faucet.example.com’, ‘_blank’);
+window.open(‘https://sepoliafaucet.com’, ‘_blank’);
 };
 
 const getTokenColor = (symbol) => {
