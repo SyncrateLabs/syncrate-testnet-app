@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowDownUp, Wallet, ChevronDown, Droplet, AlertCircle } from 'lucide-react';
+import { useAccount, useSigner, useProvider } from 'wagmi';
+import { Web3Button } from '@web3modal/react';
 
 // Contract configuration
 const CONTRACT_ADDRESS = '0x61D57514f32e0aFF26d44015C4c7ED28a75D118a';
@@ -19,8 +21,6 @@ const TOKENS = [
 ];
 
 const TestnetDEX = () => {
-const [isWalletConnected, setIsWalletConnected] = useState(false);
-const [walletAddress, setWalletAddress] = useState('');
 const [fromAmount, setFromAmount] = useState('');
 const [toAmount, setToAmount] = useState('');
 const [fromToken, setFromToken] = useState('TBILL');
@@ -36,6 +36,9 @@ const [signer, setSigner] = useState(null);
 const [tokenAddresses, setTokenAddresses] = useState({});
 const [executionStep, setExecutionStep] = useState(0);
 const [showProgress, setShowProgress] = useState(false);
+    const { address, isConnected } = useAccount();
+const { data: signer } = useSigner();
+const provider = useProvider();
 
 const executionSteps = [
 "Checking User's KYC & Allowlist Status",
@@ -45,29 +48,12 @@ const executionSteps = [
 ];
 
 useEffect(() => {
-if (window.ethereum) {
-const ethers = window.ethers;
-if (ethers) {
-const web3Provider = new ethers.BrowserProvider(window.ethereum);
-setProvider(web3Provider);
+  if (isConnected && address && provider) {
+    loadTokenAddresses(provider);
+    loadBalances(address, provider);
+  }
+}, [isConnected, address, provider]);
 }
-}
-}, []);
-
-useEffect(() => {
-// Load ethers.js from CDN
-if (!window.ethers) {
-const script = document.createElement('script');
-script.src = 'https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js';
-script.async = true;
-script.onload = () => {
-console.log('Ethers.js loaded');
-if (window.ethereum) {
-const web3Provider = new window.ethers.providers.Web3Provider(window.ethereum);
-setProvider(web3Provider);
-}
-};
-document.body.appendChild(script);
 }
 }, []);
 
