@@ -460,7 +460,4 @@ onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#C1E328'}
 );
 };
 
-);
-};
-
 export default TestnetDEX;
