@@ -151,18 +151,7 @@ export default function App() {
 
         {/* Header */}
         <div className="flex justify-end mb-6">
-          <ConnectKitButton.Custom>
-            {({ isConnected, show, truncatedAddress }) => (
-              <button
-                onClick={show}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold"
-                style={{ background: '#C1E328', color: '#000' }}
-              >
-                <Wallet size={16} />
-                {isConnected ? truncatedAddress : 'Connect Wallet'}
-              </button>
-            )}
-          </ConnectKitButton.Custom>
+          <ConnectKitButton />
         </div>
 
         {/* Error */}
