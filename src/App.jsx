@@ -1,372 +1,229 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowDownUp, ChevronDown, Droplet, AlertCircle } from 'lucide-react';
-import { ConnectKitButton } from 'connectkit';
-import { useAccount, useBalance, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
+import React, { useState, useEffect } from 'react'
+import {
+  ArrowDownUp,
+  Wallet,
+  ChevronDown,
+  Droplet,
+  AlertCircle,
+} from 'lucide-react'
 
+import { useAccount, useSigner, useProvider } from 'wagmi'
+import { ConnectKitButton } from 'connectkit'
+import { ethers } from 'ethers'
+
+// =====================
 // Contract configuration
-const CONTRACT_ADDRESS = '0x61D57514f32e0aFF26d44015C4c7ED28a75D118a';
-const CONTRACT_ABI = [{"inputs":[{"internalType":"address","name":"tbillToken","type":"address"},{"internalType":"address","name":"ousgToken","type":"address"},{"internalType":"address","name":"usdcToken","type":"address"},{"internalType":"address","name":"kycRegistry","type":"address"},{"internalType":"bytes32","name":"tbillAssetId","type":"bytes32"},{"internalType":"bytes32","name":"ousgAssetId","type":"bytes32"},{"internalType":"bytes32","name":"usdcAssetId","type":"bytes32"},{"internalType":"address","name":"tbillIssuer_","type":"address"},{"internalType":"address","name":"redemption_","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RouteCompleted","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"SettlementCompleted","type":"event"},{"inputs":[],"name":"OUSG_ASSET_ID","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"TBILL_ASSET_ID","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"USDC_ASSET_ID","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"kyc","outputs":[{"internalType":"contract KYCRegistry","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"ousg","outputs":[{"internalType":"contract OUSGToken","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"name":"processed","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"redemption","outputs":[{"internalType":"contract OUSGRedemptionMock","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"settle","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"tbill","outputs":[{"internalType":"contract TBILLToken","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"tbillIssuer","outputs":[{"internalType":"contract TBILLIssuerMock","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"usdc","outputs":[{"internalType":"contract MockUSDC","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
+// =====================
+const CONTRACT_ADDRESS = '0x61D57514f32e0aFF26d44015C4c7ED28a75D118a'
 
-// ERC20 ABI for balance and approve
+const CONTRACT_ABI = [
+  {
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }, { internalType: 'uint256', name: 'amount', type: 'uint256' }],
+    name: 'settle',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  { inputs: [], name: 'tbill', outputs: [{ type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'ousg', outputs: [{ type: 'address' }], stateMutability: 'view', type: 'function' },
+]
+
 const ERC20_ABI = [
-  "function balanceOf(address account) view returns (uint256)",
-  "function approve(address spender, uint256 amount) returns (bool)",
-  "function allowance(address owner, address spender) view returns (uint256)",
-  "function decimals() view returns (uint8)"
-];
+  'function balanceOf(address) view returns (uint256)',
+  'function allowance(address,address) view returns (uint256)',
+  'function approve(address,uint256) returns (bool)',
+]
 
 const TOKENS = [
-  { symbol: 'TBILL', name: 'T-Bill Token', color: 'from-green-400 to-green-600', decimals: 18 },
-  { symbol: 'OUSG', name: 'OUSG Token', color: 'from-purple-400 to-purple-600', decimals: 18 },
-];
+  { symbol: 'TBILL', name: 'T-Bill Token', color: 'from-green-400 to-green-600' },
+  { symbol: 'OUSG', name: 'OUSG Token', color: 'from-purple-400 to-purple-600' },
+]
 
-const TestnetDEX = () => {
-  const { address, isConnected } = useAccount();
-  const [fromAmount, setFromAmount] = useState('');
-  const [toAmount, setToAmount] = useState('');
-  const [fromToken, setFromToken] = useState('TBILL');
-  const [toToken, setToToken] = useState('OUSG');
-  const [balances, setBalances] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [txHash, setTxHash] = useState('');
-  const [showFromDropdown, setShowFromDropdown] = useState(false);
-  const [showToDropdown, setShowToDropdown] = useState(false);
-  const [error, setError] = useState('');
-  const [tokenAddresses, setTokenAddresses] = useState({});
-  const [executionStep, setExecutionStep] = useState(0);
-  const [showProgress, setShowProgress] = useState(false);
-  const { writeContract, isLoading: writeLoading } = useWriteContract();
-  const { data: hash } = useWaitForTransactionReceipt({ hash: txHash });
+export default function App() {
+  // =====================
+  // wagmi state
+  // =====================
+  const { address, isConnected } = useAccount()
+  const { data: signer } = useSigner()
+  const provider = useProvider()
 
-  const executionSteps = [
-    "Checking User's KYC & Allowlist Status",
-    `Redeeming ${fromToken}`,
-    `${toToken} Issuance Request Sent`,
-    "Route Successful"
-  ];
+  // =====================
+  // UI state
+  // =====================
+  const [fromToken, setFromToken] = useState('TBILL')
+  const [toToken, setToToken] = useState('OUSG')
+  const [fromAmount, setFromAmount] = useState('')
+  const [balances, setBalances] = useState({})
+  const [tokenAddresses, setTokenAddresses] = useState({})
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // =====================
+  // Load token addresses + balances
+  // =====================
+  useEffect(() => {
+    if (!isConnected || !address || !provider) return
+    loadTokenAddresses()
+  }, [isConnected, address, provider])
 
   useEffect(() => {
-    if (isConnected && address) {
-      loadTokenAddresses();
-      loadBalances(address);
-    }
-  }, [isConnected, address]);
+    if (!isConnected || !address || !provider) return
+    if (!tokenAddresses.TBILL) return
+    loadBalances()
+  }, [tokenAddresses, isConnected, address, provider])
 
   const loadTokenAddresses = async () => {
-    const ousg = await useReadContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: 'ousg' });
-    const tbill = await useReadContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: 'tbill' });
-    setTokenAddresses({
-      OUSG: ousg.data,
-      TBILL: tbill.data
-    });
-  };
+    try {
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider)
+      const tbill = await contract.tbill()
+      const ousg = await contract.ousg()
+      setTokenAddresses({ TBILL: tbill, OUSG: ousg })
+    } catch (e) {
+      console.error(e)
+      setError('Failed to load token addresses')
+    }
+  }
 
-  const loadBalances = async (addr) => {
-    const ousgBalance = await useBalance({ address: addr, token: tokenAddresses.OUSG });
-    const tbillBalance = await useBalance({ address: addr, token: tokenAddresses.TBILL });
-    setBalances({
-      OUSG: ousgBalance.data?.formatted || '0.00',
-      TBILL: tbillBalance.data?.formatted || '0.00'
-    });
-  };
+  const loadBalances = async () => {
+    try {
+      const tbill = new ethers.Contract(tokenAddresses.TBILL, ERC20_ABI, provider)
+      const ousg = new ethers.Contract(tokenAddresses.OUSG, ERC20_ABI, provider)
 
+      const [tb, og] = await Promise.all([
+        tbill.balanceOf(address),
+        ousg.balanceOf(address),
+      ])
+
+      setBalances({
+        TBILL: ethers.utils.formatEther(tb),
+        OUSG: ethers.utils.formatEther(og),
+      })
+    } catch (e) {
+      console.error(e)
+      setBalances({ TBILL: '0.00', OUSG: '0.00' })
+    }
+  }
+
+  // =====================
+  // Swap execution
+  // =====================
   const handleSwap = async () => {
-    if (!isConnected || !fromAmount) return;
-
-    setIsLoading(true);
-    setShowProgress(true);
-    setError('');
-    setExecutionStep(0);
+    if (!isConnected || !signer || !fromAmount) return
+    setIsLoading(true)
+    setError('')
 
     try {
-      const amount = parseEther(fromAmount);
-      const tokenAddress = tokenAddresses[fromToken];
-      const allowance = await useReadContract({ address: tokenAddress, abi: ERC20_ABI, functionName: 'allowance', args: [address, CONTRACT_ADDRESS] });
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer)
+      const token = new ethers.Contract(tokenAddresses[fromToken], ERC20_ABI, signer)
 
-      if (allowance.data < amount) {
-        await writeContract({ address: tokenAddress, abi: ERC20_ABI, functionName: 'approve', args: [CONTRACT_ADDRESS, amount] });
+      const amount = ethers.utils.parseEther(fromAmount)
+      const allowance = await token.allowance(address, CONTRACT_ADDRESS)
+
+      if (allowance.lt(amount)) {
+        const tx = await token.approve(CONTRACT_ADDRESS, amount)
+        await tx.wait()
       }
 
-      setExecutionStep(1);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setExecutionStep(2);
-      const tx = await writeContract({ address: CONTRACT_ADDRESS, abi: CONTRACT_ABI, functionName: 'settle', args: [address, amount] });
-      setTxHash(tx.hash);
-      setExecutionStep(3);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setExecutionStep(4);
-      await loadBalances(address);
-      setFromAmount('');
-      setToAmount('');
-      setShowProgress(false);
-    } catch (err) {
-      setError(err.message || 'Transaction failed');
-      setShowProgress(false);
+      const tx = await contract.settle(address, amount)
+      await tx.wait()
+
+      await loadBalances()
+      setFromAmount('')
+    } catch (e) {
+      console.error(e)
+      setError(e.reason || 'Transaction failed')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const switchTokens = () => {
-    setFromToken(toToken);
-    setToToken(fromToken);
-    setFromAmount(toAmount);
-    setToAmount(fromAmount);
-  };
+    setFromToken(toToken)
+    setToToken(fromToken)
+  }
 
-  const handleFaucet = () => {
-    window.open('https://www.alchemy.com/faucets/ethereum-sepolia', '_blank');
-  };
-
-  const getTokenColor = (symbol) => {
-    return TOKENS.find(t => t.symbol === symbol)?.color || 'from-gray-400 to-gray-600';
-  };
-
+  // =====================
+  // UI
+  // =====================
   return (
-    <div className="min-h-screen bg-black text-white" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Header */}
-      <header className="border-b border-gray-800/50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-end items-center">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleFaucet}
-              className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-gray-800 text-white text-sm font-medium rounded-lg transition"
-            >
-              <Droplet size={14} />
-              Faucet
-            </button>
-            <ConnectKitButton.Custom>
-              {({ isConnected, show, truncatedAddress }) => (
-                <button
-                  onClick={show}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition"
-                  style={{ backgroundColor: '#C1E328', color: '#000' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#a8c922'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#C1E328'}
-                >
-                  <Wallet size={14} />
-                  {isConnected ? truncatedAddress : 'Connect Wallet'}
-                </button>
-              )}
-            </ConnectKitButton.Custom>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-black text-white px-4 py-10">
+      <div className="max-w-md mx-auto">
 
-      {/* Main Content */}
-      <main className="px-4 py-16">
-        <div className="max-w-md mx-auto">
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-start gap-3">
-              <AlertCircle size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
-
-          {/* Swap Card */}
-          <div className="bg-gradient-to-b from-zinc-900/50 to-zinc-900/30 border border-gray-800/50 rounded-3xl p-1 shadow-2xl backdrop-blur-sm">
-            <div className="bg-zinc-950/90 rounded-3xl p-6">
-              
-              {/* You Pay Section */}
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm text-gray-400">You pay</span>
-                  <span className="text-sm text-gray-500">
-                    Balance: {balances[fromToken] || '0.00'} {fromToken}
-                  </span>
-                </div>
-                <div className="bg-zinc-900/80 border border-gray-800/50 rounded-2xl p-4">
-                  <div className="flex justify-between items-center">
-                    <div className="relative">
-                      <button 
-                        onClick={() => setShowFromDropdown(!showFromDropdown)}
-                        className="flex items-center gap-2 bg-zinc-800/80 hover:bg-zinc-700/80 px-3 py-2 rounded-xl transition border border-gray-700/50"
-                      >
-                        <div className={`w-6 h-6 bg-gradient-to-br ${getTokenColor(fromToken)} rounded-full flex items-center justify-center text-xs font-bold`}>
-                          {fromToken[0]}
-                        </div>
-                        <span className="font-semibold text-white">{fromToken}</span>
-                        <ChevronDown size={16} className="text-gray-400" />
-                      </button>
-                      
-                      {showFromDropdown && (
-                        <div className="absolute top-full mt-2 bg-zinc-900 border border-gray-800 rounded-xl overflow-hidden z-10 min-w-[160px]">
-                          {TOKENS.map(token => (
-                            <button
-                              key={token.symbol}
-                              onClick={() => {
-                                setFromToken(token.symbol);
-                                setShowFromDropdown(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-3 hover:bg-zinc-800 transition text-left"
-                            >
-                              <div className={`w-6 h-6 bg-gradient-to-br ${token.color} rounded-full flex items-center justify-center text-xs font-bold`}>
-                                {token.symbol[0]}
-                              </div>
-                              <div>
-                                <div className="font-semibold text-sm">{token.symbol}</div>
-                                <div className="text-xs text-gray-500">{token.name}</div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="0"
-                      value={fromAmount}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setFromAmount(value);
-                        }
-                      }}
-                      className="bg-transparent text-3xl font-semibold outline-none text-right flex-1 ml-4 placeholder-gray-600"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Swap Button */}
-              <div className="flex justify-center -my-2 relative z-10">
-                <button 
-                  onClick={switchTokens}
-                  className="bg-zinc-900 border border-gray-800 hover:bg-zinc-800 p-2.5 rounded-xl transition"
-                >
-                  <ArrowDownUp size={18} className="text-gray-400" />
-                </button>
-              </div>
-
-              {/* You Receive Section */}
-              <div className="mt-4">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm text-gray-400">You receive</span>
-                  <span className="text-sm text-gray-500">
-                    Balance: {balances[toToken] || '0.00'} {toToken}
-                  </span>
-                </div>
-                <div className="bg-zinc-900/80 border border-gray-800/50 rounded-2xl p-4">
-                  <div className="flex justify-between items-center">
-                    <div className="relative">
-                      <button 
-                        onClick={() => setShowToDropdown(!showToDropdown)}
-                        className="flex items-center gap-2 bg-zinc-800/80 hover:bg-zinc-700/80 px-3 py-2 rounded-xl transition border border-gray-700/50"
-                      >
-                        <div className={`w-6 h-6 bg-gradient-to-br ${getTokenColor(toToken)} rounded-full flex items-center justify-center text-xs font-bold`}>
-                          {toToken[0]}
-                        </div>
-                        <span className="font-semibold text-white">{toToken}</span>
-                        <ChevronDown size={16} className="text-gray-400" />
-                      </button>
-                      
-                      {showToDropdown && (
-                        <div className="absolute top-full mt-2 bg-zinc-900 border border-gray-800 rounded-xl overflow-hidden z-10 min-w-[160px]">
-                          {TOKENS.map(token => (
-                            <button
-                              key={token.symbol}
-                              onClick={() => {
-                                setToToken(token.symbol);
-                                setShowToDropdown(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-3 hover:bg-zinc-800 transition text-left"
-                            >
-                              <div className={`w-6 h-6 bg-gradient-to-br ${token.color} rounded-full flex items-center justify-center text-xs font-bold`}>
-                                {token.symbol[0]}
-                              </div>
-                              <div>
-                                <div className="font-semibold text-sm">{token.symbol}</div>
-                                <div className="text-xs text-gray-500">{token.name}</div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="0"
-                      value={toAmount}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                          setToAmount(value);
-                        }
-                      }}
-                      className="bg-transparent text-3xl font-semibold outline-none text-right flex-1 ml-4 placeholder-gray-600"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Swap Button */}
+        {/* Header */}
+        <div className="flex justify-end mb-6">
+          <ConnectKitButton.Custom>
+            {({ isConnected, show, truncatedAddress }) => (
               <button
-                onClick={handleSwap}
-                disabled={!isConnected || !fromAmount || writeLoading}
-                className={`w-full py-4 rounded-2xl font-semibold text-base transition mt-6 ${
-                  isConnected && fromAmount && !writeLoading
-                    ? 'text-black'
-                    : 'bg-zinc-800/50 text-gray-600 cursor-not-allowed border border-gray-800/50'
-                }`}
-                style={isConnected && fromAmount && !writeLoading ? { backgroundColor: '#C1E328' } : {}}
-                onMouseEnter={(e) => {
-                  if (isConnected && fromAmount && !writeLoading) {
-                    e.currentTarget.style.backgroundColor = '#a8c922';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (isConnected && fromAmount && !writeLoading) {
-                    e.currentTarget.style.backgroundColor = '#C1E328';
-                  }
-                }}
+                onClick={show}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold"
+                style={{ background: '#C1E328', color: '#000' }}
               >
-                {!isConnected
-                  ? 'Connect Wallet'
-                  : writeLoading
-                  ? 'Processing...'
-                  : !fromAmount
-                  ? 'Enter Amount'
-                  : 'Execute Route'}
+                <Wallet size={16} />
+                {isConnected ? truncatedAddress : 'Connect Wallet'}
               </button>
-
-              {/* Progress Steps */}
-              {showProgress && (
-                <div className="mt-4 bg-zinc-900/80 border border-gray-800/50 rounded-2xl p-4">
-                  {executionSteps.map((step, index) => (
-                    <div key={index} className="flex items-center gap-3 mb-3 last:mb-0">
-                      <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        index < executionStep 
-                          ? 'bg-green-500 text-black' 
-                          : index === executionStep 
-                          ? 'bg-yellow-500 text-black animate-pulse' 
-                          : 'bg-zinc-800 text-gray-500'
-                      }`}>
-                        {index < executionStep ? '✓' : index + 1}
-                      </div>
-                      <span className={`text-sm ${
-                        index <= executionStep ? 'text-white' : 'text-gray-500'
-                      }`}>
-                        {step}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Info Banner */}
-          <div className="mt-6 bg-yellow-600/5 border border-yellow-600/20 rounded-2xl p-4 text-sm">
-            <p className="text-yellow-600/90">
-              <strong>Testnet Mode:</strong> This is a test environment for compliant, on-chain settlement of tokenized real-world assets.
-            </p>
-          </div>
+            )}
+          </ConnectKitButton.Custom>
         </div>
-      </main>
-    </div>
-  );
-};
 
-export default TestnetDEX;
+        {/* Error */}
+        {error && (
+          <div className="mb-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex gap-3">
+            <AlertCircle size={18} className="text-red-500" />
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        {/* Swap Card */}
+        <div className="bg-zinc-900 border border-gray-800 rounded-3xl p-6">
+
+          {/* You Pay */}
+          <div className="mb-4">
+            <div className="flex justify-between text-sm text-gray-400 mb-2">
+              <span>You pay</span>
+              <span>{balances[fromToken] || '0.00'} {fromToken}</span>
+            </div>
+            <input
+              value={fromAmount}
+              onChange={e => setFromAmount(e.target.value)}
+              placeholder="0"
+              className="w-full bg-black text-3xl outline-none"
+            />
+          </div>
+
+          {/* Switch */}
+          <div className="flex justify-center mb-4">
+            <button onClick={switchTokens} className="p-2 border border-gray-800 rounded-xl">
+              <ArrowDownUp size={18} />
+            </button>
+          </div>
+
+          {/* You Receive */}
+          <div className="mb-6">
+            <div className="flex justify-between text-sm text-gray-400 mb-2">
+              <span>You receive</span>
+              <span>{balances[toToken] || '0.00'} {toToken}</span>
+            </div>
+            <input disabled placeholder="Auto" className="w-full bg-black text-3xl opacity-50" />
+          </div>
+
+          {/* Action */}
+          <button
+            disabled={!isConnected || !fromAmount || isLoading}
+            onClick={handleSwap}
+            className={`w-full py-4 rounded-2xl font-semibold ${
+              isConnected && fromAmount
+                ? 'bg-[#C1E328] text-black'
+                : 'bg-zinc-800 text-gray-600'
+            }`}
+          >
+            {!isConnected
+              ? 'Connect Wallet'
+              : isLoading
+              ? 'Processing…'
+              : 'Execute Route'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
