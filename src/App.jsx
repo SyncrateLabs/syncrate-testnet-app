@@ -2,35 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { ArrowDownUp, Wallet, ChevronDown, Droplet, AlertCircle } from 'lucide-react';
 
 // Contract configuration
-const CONTRACT_ADDRESS = ‘0x61D57514f32e0aFF26d44015C4c7ED28a75D118a’;
-const CONTRACT_ABI = [{“inputs”:[{“internalType”:“address”,“name”:“tbillToken”,“type”:“address”},{“internalType”:“address”,“name”:“ousgToken”,“type”:“address”},{“internalType”:“address”,“name”:“usdcToken”,“type”:“address”},{“internalType”:“address”,“name”:“kycRegistry”,“type”:“address”},{“internalType”:“bytes32”,“name”:“tbillAssetId”,“type”:“bytes32”},{“internalType”:“bytes32”,“name”:“ousgAssetId”,“type”:“bytes32”},{“internalType”:“bytes32”,“name”:“usdcAssetId”,“type”:“bytes32”},{“internalType”:“address”,“name”:“tbillIssuer_”,“type”:“address”},{“internalType”:“address”,“name”:“redemption_”,“type”:“address”}],“stateMutability”:“nonpayable”,“type”:“constructor”},{“anonymous”:false,“inputs”:[{“indexed”:true,“internalType”:“address”,“name”:“user”,“type”:“address”},{“indexed”:false,“internalType”:“uint256”,“name”:“amount”,“type”:“uint256”}],“name”:“RouteCompleted”,“type”:“event”},{“anonymous”:false,“inputs”:[{“indexed”:true,“internalType”:“address”,“name”:“user”,“type”:“address”},{“indexed”:false,“internalType”:“uint256”,“name”:“amount”,“type”:“uint256”}],“name”:“SettlementCompleted”,“type”:“event”},{“inputs”:[],“name”:“OUSG_ASSET_ID”,“outputs”:[{“internalType”:“bytes32”,“name”:””,“type”:“bytes32”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[],“name”:“TBILL_ASSET_ID”,“outputs”:[{“internalType”:“bytes32”,“name”:””,“type”:“bytes32”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[],“name”:“USDC_ASSET_ID”,“outputs”:[{“internalType”:“bytes32”,“name”:””,“type”:“bytes32”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[],“name”:“kyc”,“outputs”:[{“internalType”:“contract KYCRegistry”,“name”:””,“type”:“address”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[],“name”:“ousg”,“outputs”:[{“internalType”:“contract OUSGToken”,“name”:””,“type”:“address”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[{“internalType”:“bytes32”,“name”:””,“type”:“bytes32”}],“name”:“processed”,“outputs”:[{“internalType”:“bool”,“name”:””,“type”:“bool”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[],“name”:“redemption”,“outputs”:[{“internalType”:“contract OUSGRedemptionMock”,“name”:””,“type”:“address”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[{“internalType”:“address”,“name”:“user”,“type”:“address”},{“internalType”:“uint256”,“name”:“amount”,“type”:“uint256”}],“name”:“settle”,“outputs”:[],“stateMutability”:“nonpayable”,“type”:“function”},{“inputs”:[],“name”:“tbill”,“outputs”:[{“internalType”:“contract TBILLToken”,“name”:””,“type”:“address”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[],“name”:“tbillIssuer”,“outputs”:[{“internalType”:“contract TBILLIssuerMock”,“name”:””,“type”:“address”}],“stateMutability”:“view”,“type”:“function”},{“inputs”:[],“name”:“usdc”,“outputs”:[{“internalType”:“contract MockUSDC”,“name”:””,“type”:“address”}],“stateMutability”:“view”,“type”:“function”}];
+const CONTRACT_ADDRESS = '0x61D57514f32e0aFF26d44015C4c7ED28a75D118a';
+const CONTRACT_ABI = [{"inputs":[{"internalType":"address","name":"tbillToken","type":"address"},{"internalType":"address","name":"ousgToken","type":"address"},{"internalType":"address","name":"usdcToken","type":"address"},{"internalType":"address","name":"kycRegistry","type":"address"},{"internalType":"bytes32","name":"tbillAssetId","type":"bytes32"},{"internalType":"bytes32","name":"ousgAssetId","type":"bytes32"},{"internalType":"bytes32","name":"usdcAssetId","type":"bytes32"},{"internalType":"address","name":"tbillIssuer_","type":"address"},{"internalType":"address","name":"redemption_","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RouteCompleted","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"SettlementCompleted","type":"event"},{"inputs":[],"name":"OUSG_ASSET_ID","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"TBILL_ASSET_ID","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"USDC_ASSET_ID","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"kyc","outputs":[{"internalType":"contract KYCRegistry","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"ousg","outputs":[{"internalType":"contract OUSGToken","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"name":"processed","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"redemption","outputs":[{"internalType":"contract OUSGRedemptionMock","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"settle","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"tbill","outputs":[{"internalType":"contract TBILLToken","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"tbillIssuer","outputs":[{"internalType":"contract TBILLIssuerMock","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"usdc","outputs":[{"internalType":"contract MockUSDC","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
 
 // ERC20 ABI for balance and approve
 const ERC20_ABI = [
-“function balanceOf(address account) view returns (uint256)”,
-“function approve(address spender, uint256 amount) returns (bool)”,
-“function allowance(address owner, address spender) view returns (uint256)”,
-“function decimals() view returns (uint8)”
+"function balanceOf(address account) view returns (uint256)",
+"function approve(address spender, uint256 amount) returns (bool)",
+"function allowance(address owner, address spender) view returns (uint256)",
+"function decimals() view returns (uint8)"
 ];
 
 const TOKENS = [
-{ symbol: ‘TBILL’, name: ‘T-Bill Token’, color: ‘from-green-400 to-green-600’, decimals: 18 },
-{ symbol: ‘OUSG’, name: ‘OUSG Token’, color: ‘from-purple-400 to-purple-600’, decimals: 18 },
+{ symbol: 'TBILL', name: 'T-Bill Token', color: 'from-green-400 to-green-600', decimals: 18 },
+{ symbol: 'OUSG', name: 'OUSG Token', color: 'from-purple-400 to-purple-600', decimals: 18 },
 ];
 
 const TestnetDEX = () => {
 const [isWalletConnected, setIsWalletConnected] = useState(false);
-const [walletAddress, setWalletAddress] = useState(’’);
-const [fromAmount, setFromAmount] = useState(’’);
-const [toAmount, setToAmount] = useState(’’);
-const [fromToken, setFromToken] = useState(‘TBILL’);
-const [toToken, setToToken] = useState(‘OUSG’);
+const [walletAddress, setWalletAddress] = useState('');
+const [fromAmount, setFromAmount] = useState('');
+const [toAmount, setToAmount] = useState('');
+const [fromToken, setFromToken] = useState('TBILL');
+const [toToken, setToToken] = useState('OUSG');
 const [balances, setBalances] = useState({});
 const [isLoading, setIsLoading] = useState(false);
-const [txHash, setTxHash] = useState(’’);
+const [txHash, setTxHash] = useState('');
 const [showFromDropdown, setShowFromDropdown] = useState(false);
 const [showToDropdown, setShowToDropdown] = useState(false);
-const [error, setError] = useState(’’);
+const [error, setError] = useState('');
 const [provider, setProvider] = useState(null);
 const [signer, setSigner] = useState(null);
 const [tokenAddresses, setTokenAddresses] = useState({});
@@ -38,10 +38,10 @@ const [executionStep, setExecutionStep] = useState(0);
 const [showProgress, setShowProgress] = useState(false);
 
 const executionSteps = [
-“Checking User’s KYC & Allowlist Status”,
+"Checking User's KYC & Allowlist Status",
 `Redeeming ${fromToken}`,
 `${toToken} Issuance Request Sent`,
-“Route Successful”
+"Route Successful"
 ];
 
 useEffect(() => {
@@ -57,11 +57,11 @@ setProvider(web3Provider);
 useEffect(() => {
 // Load ethers.js from CDN
 if (!window.ethers) {
-const script = document.createElement(‘script’);
-script.src = ‘https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js’;
+const script = document.createElement('script');
+script.src = 'https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js';
 script.async = true;
 script.onload = () => {
-console.log(‘Ethers.js loaded’);
+console.log('Ethers.js loaded');
 if (window.ethereum) {
 const web3Provider = new window.ethers.providers.Web3Provider(window.ethereum);
 setProvider(web3Provider);
@@ -72,15 +72,14 @@ document.body.appendChild(script);
 }, []);
 
 const connectWallet = async () => {
-if (typeof window.ethereum !== ‘undefined’) {
+if (typeof window.ethereum !== 'undefined') {
 try {
-setError(’’);
-const accounts = await window.ethereum.request({ method: ‘eth_requestAccounts’ });
+setError('');
+const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
 setWalletAddress(accounts[0]);
 setIsWalletConnected(true);
 
-```
-    const web3Provider = new window.ethers.providers.Web3Provider(window.ethereum);
+const web3Provider = new window.ethers.providers.Web3Provider(window.ethereum);
     setProvider(web3Provider);
     const web3Signer = web3Provider.getSigner();
     setSigner(web3Signer);
@@ -94,8 +93,6 @@ setIsWalletConnected(true);
 } else {
   setError('Please install MetaMask or another Web3 wallet to use this app.');
 }
-```
-
 };
 
 const loadTokenAddresses = async (web3Provider) => {
@@ -104,7 +101,6 @@ const contract = new window.ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, web3
 const tbillAddress = await contract.tbill();
 const ousgAddress = await contract.ousg();
 
-```
   setTokenAddresses({
     TBILL: tbillAddress,
     OUSG: ousgAddress
@@ -112,8 +108,6 @@ const ousgAddress = await contract.ousg();
 } catch (error) {
   console.error('Error loading token addresses:', error);
 }
-```
-
 };
 
 const loadBalances = async (address, web3Provider) => {
@@ -122,7 +116,6 @@ const contract = new window.ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, web3
 const tbillAddress = await contract.tbill();
 const ousgAddress = await contract.ousg();
 
-```
   const tbillContract = new window.ethers.Contract(tbillAddress, ERC20_ABI, web3Provider);
   const ousgContract = new window.ethers.Contract(ousgAddress, ERC20_ABI, web3Provider);
   
@@ -140,8 +133,6 @@ const ousgAddress = await contract.ousg();
     OUSG: '0.00'
   });
 }
-```
-
 };
 
 const formatAddress = (address) => {
@@ -151,7 +142,6 @@ return `${address.slice(0, 6)}...${address.slice(-4)}`;
 const handleSwap = async () => {
 if (!isWalletConnected || !fromAmount || !signer) return;
 
-```
 setIsLoading(true);
 setShowProgress(true);
 setError('');
@@ -211,16 +201,14 @@ try {
   setIsLoading(false);
   setExecutionStep(0);
 }
-```
-
 };
 
 const handleFaucet = () => {
-window.open(‘https://sepoliafaucet.com’, ‘_blank’);
+window.open('https://sepoliafaucet.com', '_blank');
 };
 
 const getTokenColor = (symbol) => {
-return TOKENS.find(t => t.symbol === symbol)?.color || ‘from-gray-400 to-gray-600’;
+return TOKENS.find(t => t.symbol === symbol)?.color || 'from-gray-400 to-gray-600';
 };
 
 const switchTokens = () => {
@@ -231,7 +219,7 @@ setToAmount(fromAmount);
 };
 
 return (
-<div className=“min-h-screen bg-black text-white” style={{ fontFamily: ‘system-ui, -apple-system, sans-serif’ }}>
+<div className="min-h-screen bg-black text-white" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 {/* Header */}
 <header className="border-b border-gray-800/50 px-6 py-4">
 <div className="max-w-7xl mx-auto flex justify-end items-center">
@@ -245,19 +233,18 @@ Faucet
 </button>
 <button
 onClick={connectWallet}
-className=“flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition”
-style={{ backgroundColor: ‘#C1E328’, color: ‘#000’ }}
-onMouseEnter={(e) => e.currentTarget.style.backgroundColor = ‘#a8c922’}
-onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ‘#C1E328’}
+className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition"
+style={{ backgroundColor: '#C1E328', color: '#000' }}
+onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#a8c922'}
+onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#C1E328'}
 >
 <Wallet size={14} />
-{isWalletConnected ? formatAddress(walletAddress) : ‘Connect Wallet’}
+{isWalletConnected ? formatAddress(walletAddress) : 'Connect Wallet'}
 </button>
 </div>
 </div>
 </header>
 
-```
   {/* Main Content */}
   <main className="px-4 py-16">
     <div className="max-w-md mx-auto">
@@ -470,7 +457,8 @@ onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ‘#C1E328’}
     </div>
   </main>
 </div>
-```
+);
+};
 
 );
 };
