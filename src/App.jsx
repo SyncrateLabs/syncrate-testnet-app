@@ -126,7 +126,7 @@ return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
 const handleSwap = async () => {
-if (!isWalletConnected || !fromAmount || !signer) return;
+if (!isConnected || !fromAmount || !signer) return;
 
 setIsLoading(true);
 setShowProgress(true);
@@ -145,7 +145,7 @@ try {
   setExecutionStep(1);
   
   // Check allowance
-  const allowance = await tokenContract.allowance(walletAddress, CONTRACT_ADDRESS);
+  const allowance = await tokenContract.allowance(address, CONTRACT_ADDRESS);
   
   if (allowance.lt(amount)) {
     // Need approval
@@ -158,7 +158,7 @@ try {
   setExecutionStep(2);
   
   // Call settle function
-  const tx = await contract.settle(walletAddress, amount);
+  const tx = await contract.settle(address, amount);
   
   // Step 3: Issuance request sent
   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -173,7 +173,7 @@ try {
   setTxHash(receipt.transactionHash);
   
   // Reload balances
-  await loadBalances(walletAddress, provider);
+await loadBalances(address, provider);
   
   await new Promise(resolve => setTimeout(resolve, 2000));
   setFromAmount('');
