@@ -219,15 +219,20 @@ className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 bor
 Faucet
 </button>
 <button
-<button
-  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition"
-  style={{ backgroundColor: '#C1E328', color: '#000' }}
-  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#a8c922'}
-  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#C1E328'}
->
-  <Wallet size={14} />
-  <Web3Button />
-</button>
+<ConnectKitButton.Custom>
+  {({ isConnected, show, truncatedAddress }) => (
+    <button
+      onClick={show}
+      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition"
+      style={{ backgroundColor: '#C1E328', color: '#000' }}
+      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#a8c922'}
+      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#C1E328'}
+    >
+      <Wallet size={14} />
+      {isConnected ? truncatedAddress : 'Connect Wallet'}
+    </button>
+  )}
+</ConnectKitButton.Custom>
 </button>
 </div>
 </div>
