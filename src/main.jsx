@@ -1,5 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import App from './App' // ✅ REQUIRED
+
 import { WagmiConfig, createClient } from 'wagmi'
 import { getDefaultClient, ConnectKitProvider } from 'connectkit'
 import { sepolia } from 'wagmi/chains'
