@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from ‘react’;
-import { ArrowDownUp, Wallet, ChevronDown, Droplet, AlertCircle } from ‘lucide-react’;
+import React, { useState, useEffect } from 'react';
+import { ArrowDownUp, Wallet, ChevronDown, Droplet, AlertCircle } from 'lucide-react';
 
 // Contract configuration
 const CONTRACT_ADDRESS = ‘0x61D57514f32e0aFF26d44015C4c7ED28a75D118a’;
